@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>TTRPG YouTube Soundboard</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background-color: #f4f4f8;
+    margin: 20px;
+  }
+
+  /* ---- Big Mode Toggle ---- */
+  #big-mode-toggle {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    z-index: 1000;
+    background-color: #555;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #big-mode-toggle:hover { background-color: #333; }
+  #big-mode-toggle.active { background-color: #4a90e2; }
+  #big-mode-toggle.active:hover { background-color: #3b7cc0; }
+
+  /* ---- Big Mode Overrides ---- */
+  body.big-mode input,
+  body.big-mode button,
+  body.big-mode button_rem {
+    padding: 14px 18px;
+    font-size: 18px;
+    border-radius: 6px;
+  }
+
+  body.big-mode .small {
+    padding: 12px 14px;
+    font-size: 16px;
+  }
+
+  body.big-mode .track-card {
+    width: 420px;
+  }
+
+  body.big-mode .track-title {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+
+  body.big-mode .track-actions {
+    gap: 10px;
+  }
+
+  body.big-mode .track-actions .action-row {
+    gap: 10px;
+  }
+
+  body.big-mode .sfx-btn,
+  body.big-mode .sfx-btn-green {
+    width: 180px;
+    height: 110px;
+    font-size: 18px;
+    border-radius: 14px;
+  }
+
+  body.big-mode #sfx-load-btn {
+    padding: 14px 20px;
+    font-size: 18px;
+  }
+
+  body.big-mode .muted-note {
+    font-size: 14px;
+  }
+
+  #controls {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  input, button, button_rem {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+  }
+
+  button {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover { background-color: #3b7cc0; }
+
+  button_rem {
+    background-color: #e24a4a;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button_rem:hover { background-color: #b43636; }
+
+  #players {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .track-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    padding: 10px;
+    width: 370px;
+    transition: transform 0.15s ease, border 0.15s ease;
+    border: 2px solid transparent;
+  }
+  .track-card:hover { transform: scale(1.02); }
+
+  .playing { border: 2px solid #4a90e2; }
+
+  .track-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: #333;
+    text-align: center;
+  }
+
+  /* UPDATED: force two lines by stacking rows */
+  .track-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    justify-content: center;
+  }
+  .track-actions .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .small { padding: 6px 8px; font-size: 12px; }
+
+  .muted-note {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* visual state for loop toggle */
+  .toggled {
+    filter: brightness(0.92);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.3);
+  }
+
+  /* NEW: Loop = orange */
+  .btn-loop {
+    background-color: #f39c12;
+  }
+  .btn-loop:hover {
+    background-color: #d68910;
+  }
+
+  /* NEW: Rename = dark green */
+  .btn-rename {
+    background-color: #0b6b2d;
+  }
+  .btn-rename:hover {
+    background-color: #075321;
+  }
+
+  /* SFX Section */
+  #sfx-section {
+    margin: 20px 0;
+  }
+  #sfx-section h2 {
+    margin-bottom: 8px;
+  }
+  #sfx-load-area {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #sfx-load-btn {
+    background-color: #7b5ea7;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  #sfx-load-btn:hover { background-color: #6a4f91; }
+  #sfx-hint {
+    font-size: 13px;
+    color: #777;
+  }
+  #sfx-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .sfx-btn {
+    width: 150px;
+    height: 80px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: linear-gradient(145deg, #3a3a5c, #2a2a44);
+    color: #ccc;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px;
+    word-break: break-word;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .sfx-btn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .sfx-btn.sfx-playing {
+    border-color: #7b5ea7;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(123,94,167,0.35), 0 0 18px rgba(123,94,167,0.4);
+    background: linear-gradient(145deg, #5a3e82, #3d2a60);
+    animation: sfx-pulse 2s ease-in-out infinite;
+  }
+  @keyframes sfx-pulse {
+    0%   { box-shadow: 0 0 0 3px rgba(123,94,167,0.35), 0 0 18px rgba(123,94,167,0.4); }
+    50%  { box-shadow: 0 0 0 5px rgba(123,94,167,0.5), 0 0 28px rgba(123,94,167,0.6); }
+    100% { box-shadow: 0 0 0 3px rgba(123,94,167,0.35), 0 0 18px rgba(123,94,167,0.4); }
+  }
+
+  .sfx-btn-green {
+    width: 150px;
+    height: 80px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: linear-gradient(145deg, #1a3a2a, #0f2a1a);
+    color: #aaa;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px;
+    word-break: break-word;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .sfx-btn-green:hover {
+    transform: scale(1.04);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .sfx-btn-green.sfx-playing {
+    border-color: #2e7d4f;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(46,125,79,0.35), 0 0 18px rgba(46,125,79,0.4);
+    background: linear-gradient(145deg, #1e6b40, #134d2c);
+    animation: sfx-pulse-green 2s ease-in-out infinite;
+  }
+  @keyframes sfx-pulse-green {
+    0%   { box-shadow: 0 0 0 3px rgba(46,125,79,0.35), 0 0 18px rgba(46,125,79,0.4); }
+    50%  { box-shadow: 0 0 0 5px rgba(46,125,79,0.5), 0 0 28px rgba(46,125,79,0.6); }
+    100% { box-shadow: 0 0 0 3px rgba(46,125,79,0.35), 0 0 18px rgba(46,125,79,0.4); }
+  }
+</style>
+</head>
+
+<body>
+
+<button id="big-mode-toggle" title="Toggle large buttons for tablet/mobile use">⬛ Big Mode</button>
+
+<div id="controls">
+  <input id="name-input" placeholder="Track name" style="width:200px;">
+  <input id="url-input" placeholder="Paste YouTube URL" style="width:350px;">
+  <button id="add-btn">Add Video</button>
+
+  <button id="export-btn" title="Download a JSON file of this scene">Export Scene</button>
+  <button id="import-btn" title="Load a scene from a JSON file">Import Scene</button>
+  <input id="import-file" type="file" accept="application/json" style="display:none;">
+</div>
+
+<div id="players"></div>
+
+<hr>
+<div id="sfx-section">
+  <h2>Ambience SFX</h2>
+  <div id="sfx-load-area">
+    <button id="sfx-load-btn">📂 Load SFX Folder</button>
+    <input id="sfx-folder-input" type="file" accept=".mp3,audio/mpeg" multiple style="display:none;">
+    <span id="sfx-hint">Select your SFX folder — each .mp3 becomes a button</span>
+  </div>
+  <div id="sfx-grid"></div>
+</div>
+
+<!-- <div id="sfx2-section">
+  <h2>Other SFX</h2>
+  <div id="sfx2-load-area">
+    <button id="sfx2-load-btn">📂 Load other files</button>
+    <input id="sfx2-folder-input" type="file" accept=".mp3,audio/mpeg" multiple style="display:none;">
+    <span id="sfx2-hint">Select your SFX folder — each .mp3 becomes a button</span>
+  </div>
+  <div id="sfx2-grid"></div>
+</div> -->
+
+
+<hr>
+<h2>Image Gallery</h2>
+<button id="openDisplay">Open Display Tab</button>
+
+<!-- Upload inputs for each category -->
+<div style="margin-top:1em;">
+  <h3>Environment</h3>
+  <input type="file" id="envUpload" accept="image/*" multiple>
+  <div id="envGallery" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:.5em;"></div>
+</div>
+
+<div style="margin-top:1em;">
+  <h3>Maps</h3>
+  <input type="file" id="mapsUpload" accept="image/*" multiple>
+  <div id="mapsGallery" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:.5em;"></div>
+</div>
+
+<div style="margin-top:1em;">
+  <h3>NPCs</h3>
+  <input type="file" id="npcsUpload" accept="image/*" multiple>
+  <div id="npcsGallery" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:.5em;"></div>
+</div>
+
+<script>
+  // ---- Settings ----
+  const DEFAULT_FADE_MS = 2500;   // fade time for Fade In/Out
+  const TICK_MS = 50;             // volume update interval
+
+  // Load YouTube IFrame Player API
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
+
+  // State
+  const players = {};          // idx -> YT.Player
+  const fadeTimers = {};       // idx -> interval id
+  const cardElems = {};        // idx -> card element
+  let playerCount = 0;
+
+  // Data model we export/import
+  // scene = { version: 2, tracks: [ { idx, name, url, videoId, loop } ] }
+  let tracks = [];
+
+  // helpers to find/update tracks by idx
+  function getTrack(idx) { return tracks.find(t => t.idx === idx); }
+  function removeTrackFromModel(idx) { tracks = tracks.filter(t => t.idx !== idx); }
+
+  // Display title as "N. Name"
+  function formatTitle(idx, name) {
+    const safeName = (name || '').trim() || 'Untitled Track';
+    return `${idx}. ${safeName}`;
+  }
+
+  // Extract video ID from a YouTube URL
+  function getVideoId(url) {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.replace(/^www\./, '');
+      if (host === 'youtu.be') return parsed.pathname.slice(1);
+      if (host.endsWith('youtube.com')) return parsed.searchParams.get('v');
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearFade(n) {
+    if (fadeTimers[n]) {
+      clearInterval(fadeTimers[n]);
+      fadeTimers[n] = null;
+    }
+  }
+
+  // Ramp volume linearly from current to target over duration
+  function fadeTo(n, targetVol, durationMs = DEFAULT_FADE_MS) {
+    const p = players[n];
+    if (!p || typeof p.getVolume !== 'function' || typeof p.setVolume !== 'function') return;
+
+    // Ensure video is playing when fading in
+    if (targetVol > (p.getVolume?.() ?? 0)) p.playVideo();
+
+    clearFade(n);
+    const start = Math.max(0, Math.min(100, p.getVolume()));
+    const end   = Math.max(0, Math.min(100, targetVol));
+    if (start === end || durationMs <= 0) { p.setVolume(end); return; }
+
+    const steps = Math.max(10, Math.floor(durationMs / TICK_MS));
+    let i = 0;
+
+    fadeTimers[n] = setInterval(() => {
+      i++;
+      const t = i / steps;
+      const vol = Math.round(start + (end - start) * t);
+      p.setVolume(vol);
+
+      if (i >= steps) {
+        clearFade(n);
+        p.setVolume(end);
+        if (end === 0) p.pauseVideo();
+      }
+    }, TICK_MS);
+  }
+
+  // Crossfade helper (used by button and by numpad shortcuts)
+  function crossfadeTrack(n) {
+    Object.keys(players).forEach(k => {
+      const idx = Number(k);
+      if (idx !== n) fadeTo(idx, 0, DEFAULT_FADE_MS);
+    });
+    fadeTo(n, 100, DEFAULT_FADE_MS);
+  }
+
+  function makeHandlers(n) {
+    return {
+      play: () => { clearFade(n); players[n].playVideo(); },
+      stop: () => { clearFade(n); players[n].stopVideo(); },
+      fadeIn: () => fadeTo(n, 100, DEFAULT_FADE_MS),
+      fadeOut: () => fadeTo(n, 0, DEFAULT_FADE_MS),
+
+      crossfade: () => crossfadeTrack(n),
+
+      toggleLoop: (btnEl) => {
+        const tr = getTrack(n);
+        if (!tr) return;
+        tr.loop = !tr.loop;
+        // Visual + label update
+        if (tr.loop) {
+          btnEl.classList.add('toggled');
+          btnEl.textContent = 'Loop: On';
+        } else {
+          btnEl.classList.remove('toggled');
+          btnEl.textContent = 'Loop: Off';
+        }
+      },
+      rename: (titleEl) => {
+        const tr = getTrack(n);
+        if (!tr) return;
+        const next = prompt('Rename track:', tr.name || 'Untitled Track');
+        if (next !== null) {
+          const newName = (next || '').trim() || 'Untitled Track';
+          tr.name = newName;
+          titleEl.textContent = formatTitle(n, newName);
+        }
+      },
+      remove: () => {
+        // stop fades, destroy player, remove DOM, remove model
+        clearFade(n);
+        try { players[n]?.stopVideo?.(); } catch {}
+        try { players[n]?.destroy?.(); } catch {}
+        delete players[n];
+        const card = cardElems[n];
+        if (card && card.parentNode) card.parentNode.removeChild(card);
+        delete cardElems[n];
+        removeTrackFromModel(n);
+      }
+    };
+  }
+
+  function buildCard(idx, name, videoId, loop = true) {
+    const card = document.createElement('div');
+    card.className = 'track-card';
+    cardElems[idx] = card;
+
+    const title = document.createElement('div');
+    title.className = 'track-title';
+    title.textContent = formatTitle(idx, name);
+    card.appendChild(title);
+
+    const playerDiv = document.createElement('div');
+    const elId = `player-${idx}`;
+    playerDiv.id = elId;
+    card.appendChild(playerDiv);
+
+    const actions = document.createElement('div');
+    actions.className = 'track-actions';
+
+    // UPDATED: two forced rows
+    actions.innerHTML = `
+      <div class="action-row">
+        <button class="small" id="play-${idx}">Play</button>
+        <button class="small" id="stop-${idx}">Stop</button>
+        <button class="small" id="fadein-${idx}">Fade In</button>
+        <button class="small" id="fadeout-${idx}">Fade Out</button>
+        <button class="small" id="crossfade-${idx}" title="Fade out all other tracks and fade in this one">Crossfade</button>
+      </div>
+
+      <div class="action-row">
+        <button class="small btn-loop" id="loop-${idx}" title="Toggle looping for this video"></button>
+        <button class="small btn-rename" id="rename-${idx}" title="Rename this track">Rename</button>
+        <button_rem class="small" id="remove-${idx}" title="Remove this track">Remove</button_rem>
+      </div>
+    `;
+    card.appendChild(actions);
+
+    const note = document.createElement('span');
+    note.className = 'muted-note';
+    note.textContent = 'Tip: Click Play/Fade to unmute due to browser autoplay rules.';
+    card.appendChild(note);
+
+    document.getElementById('players').appendChild(card);
+
+    // Create the player
+    players[idx] = new YT.Player(elId, {
+      height: '200',
+      width: '356',
+      videoId,
+      playerVars: { controls: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady: e => {
+          e.target.setVolume(0); // start silent to satisfy autoplay policies
+          const h = makeHandlers(idx);
+
+          // wire up controls
+          document.getElementById(`play-${idx}`).onclick = h.play;
+          document.getElementById(`stop-${idx}`).onclick = h.stop;
+          document.getElementById(`fadein-${idx}`).onclick = h.fadeIn;
+          document.getElementById(`fadeout-${idx}`).onclick = h.fadeOut;
+          document.getElementById(`crossfade-${idx}`).onclick = h.crossfade;
+
+          const loopBtn = document.getElementById(`loop-${idx}`);
+          // initialize loop button visual state and label
+          if (loop) {
+            loopBtn.classList.add('toggled');
+            loopBtn.textContent = 'Loop: On';
+          } else {
+            loopBtn.textContent = 'Loop: Off';
+          }
+          loopBtn.onclick = () => h.toggleLoop(loopBtn);
+
+          const renameBtn = document.getElementById(`rename-${idx}`);
+          renameBtn.onclick = () => h.rename(title);
+
+          const removeBtn = document.getElementById(`remove-${idx}`);
+          removeBtn.onclick = h.remove;
+        },
+        onStateChange: e => {
+          if (e.data === YT.PlayerState.PLAYING) {
+            card.classList.add('playing');
+          } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+            card.classList.remove('playing');
+          }
+
+          // handle software loop when video ends
+          if (e.data === YT.PlayerState.ENDED) {
+            const tr = getTrack(idx);
+            if (tr?.loop) {
+              try {
+                e.target.seekTo(0, true);
+                e.target.playVideo();
+              } catch {}
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Add one new track (UI + data)
+  function addTrack(name, url) {
+    const videoId = getVideoId(url);
+    if (!videoId) { alert('Invalid YouTube URL'); return; }
+
+    playerCount++;
+    const idx = playerCount;
+
+    // default loop ON
+    const track = { idx, name, url, videoId, loop: true };
+    tracks.push(track);
+    buildCard(idx, name, videoId, track.loop);
+  }
+
+  // Clear all players/cards/state (used before import)
+  function clearScene() {
+    // Stop fades
+    Object.keys(fadeTimers).forEach(k => clearFade(k));
+    // Destroy YT players if available
+    Object.keys(players).forEach(k => {
+      try { players[k].destroy && players[k].destroy(); } catch {}
+      delete players[k];
+    });
+    // Clear DOM
+    document.getElementById('players').innerHTML = '';
+    // Reset state
+    playerCount = 0;
+    tracks = [];
+  }
+
+  // Export current scene as JSON and download
+  function exportScene() {
+    const scene = {
+      version: 2,
+      createdAt: new Date().toISOString(),
+      tracks: tracks.map(t => ({
+        name: t.name,
+        url: t.url,
+        videoId: t.videoId,
+        loop: !!t.loop
+      }))
+    };
+    const blob = new Blob([JSON.stringify(scene, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ttrpg-soundboard-scene.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // Import scene from a JS object (already parsed)
+  function loadScene(scene) {
+    if (!scene || !Array.isArray(scene.tracks)) {
+      alert('Invalid scene JSON');
+      return;
+    }
+    clearScene();
+    scene.tracks.forEach(tr => {
+      // prefer saved videoId if present, else derive from URL
+      const vid = tr.videoId || getVideoId(tr.url || '');
+      const name = tr.name || 'Untitled Track';
+      const url  = tr.url  || (vid ? `https://youtu.be/${vid}` : '');
+      const loop = (typeof tr.loop === 'boolean') ? tr.loop : true; // default ON
+      if (vid) {
+        playerCount++;
+        const idx = playerCount;
+        const track = { idx, name, url, videoId: vid, loop };
+        tracks.push(track);
+        buildCard(idx, name, vid, loop);
+      }
+    });
+  }
+
+  // Wire top-level controls after API is ready
+  function onYouTubeIframeAPIReady() {
+    document.getElementById('add-btn').onclick = () => {
+      const name = (document.getElementById('name-input').value || '').trim() || 'Untitled Track';
+      const url  = (document.getElementById('url-input').value  || '').trim();
+      addTrack(name, url);
+    };
+
+    document.getElementById('export-btn').onclick = exportScene;
+
+    const importFile = document.getElementById('import-file');
+    document.getElementById('import-btn').onclick = () => importFile.click();
+    importFile.onchange = () => {
+      const file = importFile.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const scene = JSON.parse(reader.result);
+          loadScene(scene);
+        } catch (e) {
+          alert('Could not parse JSON file.');
+        } finally {
+          importFile.value = '';
+        }
+      };
+      reader.readAsText(file);
+    };
+  }
+
+  // Expose for YouTube API
+  window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
+  // NEW: Numpad 1-9 triggers Crossfade on track 1-9
+  document.addEventListener('keydown', (e) => {
+    // don't trigger while typing in inputs/textareas/contenteditable
+    const t = e.target;
+    const tag = (t && t.tagName) ? t.tagName.toLowerCase() : '';
+    const isTypingField =
+      tag === 'input' || tag === 'textarea' || (t && t.isContentEditable);
+
+    if (isTypingField) return;
+
+    // Only plain press (avoid surprises with modifiers)
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+
+    // Match Numpad1..Numpad9 (not digits row)
+    const m = /^Numpad([1-9])$/.exec(e.code);
+    if (!m) return;
+
+    const idx = Number(m[1]);
+    if (players[idx]) {
+      e.preventDefault();
+      crossfadeTrack(idx);
+    }
+  });
+
+  // --- IMAGE DISPLAY FEATURE ---
+
+  const IS_DISPLAY = new URLSearchParams(location.search).get("display") === "1";
+  const DISPLAY_CHANNEL = "rpg-display";
+  const displayChannel = new BroadcastChannel(DISPLAY_CHANNEL);
+
+  if (IS_DISPLAY) {
+    // Fullscreen display layout
+    document.body.innerHTML = `
+      <style>
+        html,body { margin:0; height:100%; background:#000; overflow:hidden }
+        #bgImg {
+          position:fixed;
+          top:0; left:0; width:100%; height:100%;
+          object-fit:contain;
+          transition:opacity .6s;
+          z-index:1;
+        }
+        #npcImg {
+          position:fixed;
+          padding: 0 150px 0 0;
+          bottom:0; right:0;
+          max-height:60%;
+          object-fit:contain;
+          transition:opacity .4s;
+          z-index:2;
+        }
+      </style>
+      <img id="bgImg" alt="">
+      <img id="npcImg" alt="">
+    `;
+
+    const bgImg = document.getElementById("bgImg");
+    const npcImg = document.getElementById("npcImg");
+
+    displayChannel.onmessage = (e) => {
+      const {type, data} = e.data || {};
+
+      switch (type) {
+        case "SHOW_ENVIRONMENT":
+        case "SHOW_MAP":
+          bgImg.style.opacity = 0;
+          setTimeout(()=>{
+            bgImg.src = data.url;
+            bgImg.alt = data.name || "";
+            bgImg.style.objectFit = (type === "SHOW_MAP") ? "cover" : "contain";
+            bgImg.style.opacity = 1;
+          }, 200);
+          break;
+
+        case "SHOW_NPC":
+          npcImg.style.opacity = 0;
+          setTimeout(()=>{
+            npcImg.src = data.url;
+            npcImg.alt = data.name || "";
+            npcImg.style.opacity = 1;
+          }, 150);
+          break;
+
+        case "CLEAR_NPC":
+          npcImg.style.opacity = 0;
+          setTimeout(()=> npcImg.src="", 400);
+          break;
+
+        case "CLEAR_BG":
+          bgImg.style.opacity = 0;
+          setTimeout(()=> bgImg.src="", 600);
+          break;
+      }
+    };
+
+    // Stop the rest of the controller code
+    throw new Error("DISPLAY_MODE_DONE");
+  }
+
+  // Controller mode
+  const openDisplayBtn = document.getElementById("openDisplay");
+  openDisplayBtn.onclick = () => {
+    window.open(location.pathname + "?display=1", "_blank");
+  };
+
+  // Image storage
+  let images = {
+    env: [],
+    maps: [],
+    npcs: []
+  };
+
+  // Utility: create thumbnail card
+  function createThumb({id, url, name, type}) {
+    const thumb = document.createElement("div");
+    thumb.style = `
+      width:160px; height:auto;
+      display:flex; flex-direction:column; align-items:center;
+      overflow:hidden; position:relative;
+      cursor:pointer; border:1px solid #444;
+      padding:6px; border-radius:6px;
+      background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    `;
+    thumb.title = name;
+
+    // Remove extension from name for display
+    const displayName = name.replace(/\.[^/.]+$/, "");
+
+    const img = document.createElement("img");
+    img.src = url;
+    img.style = `
+      width:160px;
+      height:120px;
+      object-fit:cover;
+      border-radius:4px;
+    `;
+
+    const caption = document.createElement("div");
+    caption.textContent = displayName;
+    caption.style = `
+      margin-top:6px;
+      font-size:13px;
+      color:#333;
+      text-align:center;
+      word-break:break-word;
+    `;
+
+    const btnContainer = document.createElement("div");
+    btnContainer.style = `
+      display:flex;
+      gap:6px;
+      margin-top:6px;
+      justify-content:center;
+    `;
+
+    const btnShow = document.createElement("button");
+    btnShow.textContent = "Show";
+    btnShow.style = `
+      padding:4px 8px;
+      font-size:12px;
+      border:1px solid #4a90e2;
+      background:#4a90e2;
+      color:white;
+      border-radius:3px;
+      cursor:pointer;
+    `;
+    btnShow.onmouseover = () => btnShow.style.background = "#3b7cc0";
+    btnShow.onmouseout  = () => btnShow.style.background = "#4a90e2";
+    btnShow.onclick = (ev) => {
+      ev.stopPropagation();
+      if (type === "env") {
+        displayChannel.postMessage({type:"SHOW_ENVIRONMENT", data:{url,name}});
+      } else if (type === "maps") {
+        displayChannel.postMessage({type:"SHOW_MAP", data:{url,name}});
+      } else if (type === "npcs") {
+        displayChannel.postMessage({type:"SHOW_NPC", data:{url,name}});
+      }
+    };
+
+    const btnClear = document.createElement("button");
+    btnClear.textContent = "Clear";
+    btnClear.style = `
+      padding:4px 8px;
+      font-size:12px;
+      border:1px solid #e24a4a;
+      background:#e24a4a;
+      color:white;
+      border-radius:3px;
+      cursor:pointer;
+    `;
+    btnClear.onmouseover = () => btnClear.style.background = "#b43636";
+    btnClear.onmouseout  = () => btnClear.style.background = "#e24a4a";
+    btnClear.onclick = (ev) => {
+      ev.stopPropagation();
+      if (type === "npcs") {
+        displayChannel.postMessage({type:"CLEAR_NPC"});
+      } else {
+        displayChannel.postMessage({type:"CLEAR_BG"});
+      }
+    };
+
+    // Add buttons to container
+    btnContainer.append(btnShow, btnClear);
+
+    // Append in order: image → caption → buttons
+    thumb.append(img, caption, btnContainer);
+    return thumb;
+  }
+
+  // Handle uploads
+  function setupUpload(inputId, galleryId, type) {
+    const input = document.getElementById(inputId);
+    const gallery = document.getElementById(galleryId);
+
+    input.onchange = (e) => {
+      for (const file of e.target.files) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const url = ev.target.result;
+          const id = crypto.randomUUID();
+          const imgObj = {id, name:file.name, url};
+          images[type].push(imgObj);
+
+          const thumb = createThumb({...imgObj, type});
+          gallery.appendChild(thumb);
+        };
+        reader.readAsDataURL(file);
+      }
+      e.target.value = ""; // reset input
+    };
+  }
+
+  // Init the three categories
+  setupUpload("envUpload", "envGallery", "env");
+  setupUpload("mapsUpload", "mapsGallery", "maps");
+  setupUpload("npcsUpload", "npcsGallery", "npcs");
+
+  // ---- SFX Section ----
+  const SFX_FADE_MS = 2000;
+  const SFX_TICK_MS = 50;
+  const SFX_MAX_VOL = 1.0;
+
+  // sfxState: name -> { audio, playing, timer }
+  const sfxState = {};
+
+  function sfxFadeTo(name, targetVol) {
+    const s = sfxState[name];
+    if (!s) return;
+    if (s.timer) { clearInterval(s.timer); s.timer = null; }
+
+    const startVol = s.audio.volume;
+    const endVol   = Math.max(0, Math.min(SFX_MAX_VOL, targetVol));
+    const steps    = Math.max(10, Math.floor(SFX_FADE_MS / SFX_TICK_MS));
+    let i = 0;
+
+    if (targetVol > 0 && s.audio.paused) {
+      s.audio.volume = 0;
+      s.audio.play().catch(() => {});
+    }
+
+    s.timer = setInterval(() => {
+      i++;
+      const t   = i / steps;
+      s.audio.volume = Math.max(0, Math.min(SFX_MAX_VOL, startVol + (endVol - startVol) * t));
+
+      if (i >= steps) {
+        clearInterval(s.timer);
+        s.timer = null;
+        s.audio.volume = endVol;
+        if (endVol === 0) {
+          s.audio.pause();
+          s.audio.currentTime = 0;
+        }
+      }
+    }, SFX_TICK_MS);
+  }
+
+  function makeSfxButton(file) {
+    const name = file.name.replace(/\.mp3$/i, '');
+    const url  = URL.createObjectURL(file);
+
+    const audio    = new Audio(url);
+    audio.loop     = true;
+    audio.volume   = 0;
+    sfxState[name] = { audio, playing: false, timer: null };
+
+    const btn = document.createElement('button');
+    btn.className   = 'sfx-btn';
+    btn.textContent = name;
+
+    btn.onclick = () => {
+      const s = sfxState[name];
+      if (!s.playing) {
+        s.playing = true;
+        btn.classList.add('sfx-playing');
+        sfxFadeTo(name, SFX_MAX_VOL);
+      } else {
+        s.playing = false;
+        btn.classList.remove('sfx-playing');
+        sfxFadeTo(name, 0);
+      }
+    };
+
+    document.getElementById('sfx-grid').appendChild(btn);
+  }
+
+  // Wire up Load SFX Folder button
+  const sfxFolderInput = document.getElementById('sfx-folder-input');
+  document.getElementById('sfx-load-btn').onclick = () => sfxFolderInput.click();
+
+  sfxFolderInput.onchange = (e) => {
+    const files = Array.from(e.target.files)
+      .filter(f => f.name.toLowerCase().endsWith('.mp3'))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (files.length === 0) {
+      alert('No .mp3 files found in the selected files.');
+      return;
+    }
+
+    // Stop and clear any existing SFX
+    Object.values(sfxState).forEach(s => {
+      if (s.timer) clearInterval(s.timer);
+      s.audio.pause();
+    });
+    for (const key in sfxState) delete sfxState[key];
+    document.getElementById('sfx-grid').innerHTML = '';
+    document.getElementById('sfx-hint').textContent = `${files.length} SFX loaded`;
+
+    files.forEach(makeSfxButton);
+    sfxFolderInput.value = '';
+  };
+
+  const sfx2FolderInput = document.getElementById('sfx2-folder-input');
+  const sfx2LoadBtn = document.getElementById('sfx2-load-btn');
+  if (sfx2LoadBtn && sfx2FolderInput) sfx2LoadBtn.onclick = () => sfx2FolderInput.click();
+
+  if (sfx2FolderInput) sfx2FolderInput.onchange = (e) => {
+    const files = Array.from(e.target.files)
+      .filter(f => f.name.toLowerCase().endsWith('.mp3'))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (files.length === 0) {
+      alert('No .mp3 files found in the selected files.');
+      return;
+    }
+
+    Object.entries(sfxState).filter(([k]) => k.startsWith('sfx2:')).forEach(([k, s]) => {
+      if (s.timer) clearInterval(s.timer);
+      s.audio.pause();
+      delete sfxState[k];
+    });
+    document.getElementById('sfx2-grid').innerHTML = '';
+    document.getElementById('sfx2-hint').textContent = `${files.length} SFX loaded`;
+
+    files.forEach(file => {
+      const name    = 'sfx2:' + file.name.replace(/\.mp3$/i, '');
+      const label   = file.name.replace(/\.mp3$/i, '');
+      const url     = URL.createObjectURL(file);
+      const audio   = new Audio(url);
+      audio.loop    = true;
+      audio.volume  = 0;
+      sfxState[name] = { audio, playing: false, timer: null };
+
+      const btn = document.createElement('button');
+      btn.className   = 'sfx-btn-green';
+      btn.textContent = label;
+
+      btn.onclick = () => {
+        const s = sfxState[name];
+        if (!s.playing) {
+          s.playing = true;
+          btn.classList.add('sfx-playing');
+          sfxFadeTo(name, SFX_MAX_VOL);
+        } else {
+          s.playing = false;
+          btn.classList.remove('sfx-playing');
+          sfxFadeTo(name, 0);
+        }
+      };
+
+      document.getElementById('sfx2-grid').appendChild(btn);
+    });
+    sfx2FolderInput.value = '';
+  };
+  // ---- Big Mode Toggle ----
+  (function() {
+    const btn = document.getElementById('big-mode-toggle');
+    let bigMode = false;
+    btn.onclick = () => {
+      bigMode = !bigMode;
+      document.body.classList.toggle('big-mode', bigMode);
+      btn.classList.toggle('active', bigMode);
+      btn.textContent = bigMode ? '⬛ Big Mode: On' : '⬛ Big Mode';
+    };
+  })();
+</script>
+
+</body>
+</html>
